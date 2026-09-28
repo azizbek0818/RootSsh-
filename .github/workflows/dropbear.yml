@@ -1,0 +1,26 @@
+name: Build Dropbear
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  dropbear:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build arm64 static
+        run: |
+          set -e
+          TC=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin
+          curl -LO https://matt.ucc.asn.au/dropbear/releases/dropbear-2022.83.tar.bz2
+          tar xf dropbear-2022.83.tar.bz2
+          cd dropbear-2022.83
+          export CC=$TC/aarch64-linux-android24-clang
+          ./configure --host=aarch64-linux-android --disable-zlib --disable-syslog --disable-lastlog --disable-utmp --disable-utmpx --disable-wtmp --disable-wtmpx --disable-pututline --disable-pututxline --enable-static
+          make PROGRAMS="dropbear dropbearkey" STATIC=1 -j4
+          $TC/llvm-strip dropbear dropbearkey
+          mkdir -p ../out && cp dropbear dropbearkey ../out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dropbear-arm64
+          path: out/
